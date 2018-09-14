@@ -189,10 +189,11 @@
 		使用更高级别的二级缓存,每个session共用的缓存。
 		
 		二级缓存的配置步骤：
-			1，添加二级缓存对应的jar包
-			2，将二级缓存的配置文件放到src目录下 ehcache.xml
+			1，添加二级缓存对应的jar包 \hibernate-release-5.3.5.Final\lib\optional\ehcache文件夹下的jar包，
+			2，将二级缓存的配置文件放到src目录下 ehcache.xml 直接在工程里面搜索此文件
 	 		3，添加二级缓存的属性配置文件到cfg文件中hibernate.cfg.xml
 			4，在需要被缓存的表所对应的映射文件中添加<cache/>标签。animals.hbm.xml
+			<cache usage="read-only" include="all" region="defaultCache"/><!-- 亲测，如果不放一开始，还会报错 -->
 				<cache/>标签的详细介绍：
 					usage：指定缓存策略，可选的策略包括：transactional,read-write,nonstrict-read-write,read-only只读事务模式.
 					include:all ,non-lazy（并不会缓存当前对象的进行延迟加载的属性）。

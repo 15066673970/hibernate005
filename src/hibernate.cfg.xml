@@ -29,7 +29,6 @@
 		<!-- 如果session获取的方式是getCurrentSession的时候，需要添加此属性，代表jdbc事务，如果是jta全局事务，需要写jta，单纯的opensession不需要添加这个属性 -->
 		<property name="hibernate.current_session_context_class">thread</property>
 		<!-- 添加二级缓存的配置文件-->
-		
         <property name="cache.use_second_level_cache">true</property>
         <property name="cache.region.factory_class">org.hibernate.cache.EhCacheRegionFactory</property>
 		<property name="cache.use_query_cache">true</property>
