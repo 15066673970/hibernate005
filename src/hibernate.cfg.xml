@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+
+    <session-factory>
+    	<property name="dialect">org.hibernate.dialect.Oracle10gDialect</property>
+		<property name="connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
+		<property name="connection.url">jdbc:oracle:thin:@localhost:1521:ORCL</property>
+		<property name="connection.username">sdtest</property>
+		<property name="connection.password">dreamsoft</property>
+		
+		<!-- mysql数据库连接的方言和url -->
+		<!--
+		<property name="dialect">org.hibernate.dialect.MySQLDialect</property>
+		<property name="connection.url">
+				<![CDATA[
+					jdbc:mysql://localhost:3306/db?useUnicode=true?characterEncoding=utf-8	
+				]]>
+		</property>
+		  -->
+		
+		<property name="show_sql">true</property>
+		<property name="format_sql">false</property>
+		<property name="hbm2ddl.auto">update</property>
+		
+		<!-- 如果session获取的方式是getCurrentSession的时候，需要添加此属性，代表jdbc事务，如果是jta全局事务，需要写jta，单纯的opensession不需要添加这个属性 -->
+		<property name="hibernate.current_session_context_class">thread</property>
+		<!-- 指定映射文件的路径 -->
+	
+    </session-factory>
+
+</hibernate-configuration>

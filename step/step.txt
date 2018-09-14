@@ -1,0 +1,264 @@
+---1.基础配置	hibernate初识
+	1-》window-》preferences-》java-》build path-》user libraries将所需的所有jar包新建user libraries目录添加进来，方便后期使用加，
+	我们新建3个，一个hibernate-core，其中所有的jar包就是我们解压的hibernate项目下的lib目录下required文件夹里面的hibernate运行所必须的jar包。
+	juint4单元测试junit-4.10.jar ，还有数据库的连接驱动jar文件。此处使用的是oracle数据库
+	2-》去项目里面拷贝一个hibernate.cfg.xml文件，在cfg文件里面写好连接数据库所需的基础条件
+	property标签
+		connection.class
+		connection.url
+		connection.username
+		connection.password
+		dialect
+		show_sql
+		format_sql
+		hbm2ddl.auto
+	mapping标签
+		resource属性定义需要加载某个hbm文件，注意这里的hbm文件前面的包名需要使用/来区分，例如：<mapping resource="com/jinan/www/entity/Students.hbm.xml"/>
+	
+	实体类：Students.java 
+	实体类(对象-关系)映射文件：Students.hbm.xml
+			Hiernate采用XML格式的文件来指定对象和关系数据之间的映射。Hibernate通过这个文件来生成各种sql语句。
+			命名规则为 实体类名.hbm.xml  应该和实体类放在同一目录下。
+	hibernate配置文件：hibernate.cfg.xml
+	test类：test源文件夹下的StudentsTest.java文件
+
+---2.hibernate进阶
+		1.hibernate.cfg.xml常用配置
+			show_sql
+			format_sql
+			hbm2ddl.auto可以帮助由java代码生成数据库脚本，进而生成具体的表结构。create(如果有那么删除)|update|create-drop(先创建再删除)|validate(如果现有的表结构和原来的表结构不同，那么就不会继续执行)
+			default_schema默认的数据库
+			dialect 数据库方言
+			
+		2.session简介
+		 hibernate不建议直接使用connection操作数据库，而是通过session操作数据库，可以理解为操作数据的对象。
+		 session与connection是多对一的关系。每个session都有一个与之对应的connection，一个connection不同时刻可供多个session使用
+		 save(),update(),delete(),createQuery()....
+		 
+		3.transaction简介
+		
+		hibernate对数据的操作都是封装在事务当中，并且默认是非自动提交的方式。所以用session保存对象时，如果不开启事务，并且手工提交事务，对象并不会真正保存在数据库中。
+		如果你想让hibernate像JDBC那么自动提交事务，必须调用session对象的dowork()方法，获得JDBC的connection后，设置其为自动提交模式。(通常不推荐这样做)
+		（这里在StudentsTest2.java中测验了。但是很遗憾没有通过，不知道是不是hibernate版本的问题还是其他的，貌似不是很重要，暂且跳过）
+		
+		
+		4.session详解
+		获得session的方式：
+			openSession()
+			getCurrentSession();
+		如果使用getCurrentSession需要在hibernate.cfg.xml文件中配置：
+			如果是本地事务（JDBC事务）
+				<property name="hibernate.current_session_context_class">thread</property>		
+			如果是全局事务（jta事务）
+				<property name="hibernate.current_session_context_class">jta</property>
+		
+		SessionTest.java
+		
+		区别：1，getCurrentSession在事务提交或者回滚后会自动关闭，而openSession需要手动关闭，如果使用openSession没有手动关闭，多次之后会导致连接池溢出。
+		2，openSession每次创建新的session对象，getCurrentSession使用现有的session对象。
+		
+		SessionTest.java
+		
+		5.hbm配置文件常用配置（还需要总结）
+		<hibernate-mapping></hibernate-mapping>常用属性
+		
+		
+---3.单表操作
+		1.单一主键
+			主键的生成策略：assigned 由java应用程序负责生成（手工赋值）
+						native 由底层数据库自动生成标识符，如果是mysql就是increment，如果是oracle就是sequence，等等。
+		2.基本类型
+			参考img图片。
+		3.对象类型
+			使用hibernate读取、写入一个blob类型的数据。
+			testWriteBlob();testReadBlob();
+		4.组件属性
+			实体类中的某个属性属于用户自定义的类的对象
+			Teacher.java
+			 Address.java
+			  Teacher.hbm.xml 
+			  TestComponent.java
+		5.单表操作crud实例
+			save()
+			delete()
+			update()
+			get/load(查询单个记录)
+				1，get方法会在调用之后立即向数据库发出sql语句，返回持久化对象。load方法会在调用之后返回一个代理对象，该代理对象只保存了
+					实体对象的id，知道使用对象的非主键属性时才会发出sql语句。
+				2，查询数据库中不存在的数据时，get方法返回null
+					load方法抛出异常org.hibernate.ObjectNotFoundException
+
+
+
+---3.一对多映射
+		
+		问题：待测。就是不管是单向的多对一，还是一对多。我们始终操作的都是对学生的crud，班级的crud并没有测试。
+		
+		分3个部分：单向的一对多关联	单向的多对一关联  inverse和cascade属性
+		
+		首先是单向的一对多关联。
+		
+			1，sql建表语句 student.sql，注意看在多的一方student表中有个字段是gid，作为外键去关联grade表中的id，使用关联外键来表示自己是多的一方。
+			2，新建实体类，Grade.java,Student.java,其中班级类是一的一方，学生类是多的一方，在一的一方中使用set集合的属性把多的一方加入进来。
+				private Set<Student> students=new HashSet<>();
+			重点记忆的地方：
+			3，student.hbm.xml正常配置。然后在一的一方grade.hbm.xml配置文件中需要进行特殊的配置。
+				<!-- 配置单向的一对多关联关系 -->
+					<set name="students" table="student">
+					<!-- 指定关联的外键列 -->
+					<key column="gid"></key>
+					<one-to-many class="com.jinan.www.entity.Student"/>
+				</set>
+			4，然后在hibernate的配置文件中使用mapping标签，把实体类的映射文件加入进来。
+				<mapping resource="com/jinan/www/entity/Grade.hbm.xml"/>
+				<mapping resource="com/jinan/www/entity/Student.hbm.xml"/>
+			5.最后编写测试类
+				Test.java 测试多的一方学生的增删改查操作。
+		
+		其次是单向的多对一的关联。
+		
+			1，sql建表语句student1.sql	，同之前建立的一样。
+			2，新建实体类，Grade1.java，Student1.java，其中班级类是一的一方，学生类是多的一方，既然是单向的多对一的关联，那么我们
+			并没有在一的一方加入student1的set集合，但是却在Student1中加入了Grade1属性。同时增加了getter、setter方法。构造方法。
+			
+			private Grade1 grade1;
+			
+			3，grade1.hbm。xml普通配置，不需要配置set属性，然后Student1.hmb。xml需要配置many2one标签。
+			
+			<!-- 配置多对一关联关系 -->
+			<many-to-one name="grade1" class="com.jinan.www.entity.Grade1" column="gid"></many-to-one>	
+		
+			4，然后在hibernate的配置文件中使用mapping标签，把实体类的映射文件加入进来。
+			<mapping resource="com/jinan/www/entity/Grade1.hbm.xml"/>
+			<mapping resource="com/jinan/www/entity/Student1.hbm.xml"/>	
+			5，测试。test1.java
+			
+		inverse和cascade属性，详见img
+			inverse属性用来设置关联关系由谁来控制。在一对多的关联关系中，默认是由一方来维护的，通过设置一方的inverser属性为true，
+			这样可以将关联关系的维护交由多方来维护，这样可以避免生成更多的维护的sql语句，能够提升性能。
+			cascade属性用来进行级联操作，当属性不为none时，hibernate会自动持久化关联的操作对象。也就是只需要session.save(grade),
+			那么grade关联的student1 ，student2，。。。也都会保存到数据库中，增删改查操作都会持久化。
+			取值：
+					all	对所有操作进行级联操作
+					save-update	执行保存和更新操作时进行级联操作
+					delete 	执行删除操作时进行级联操作
+					none	对所有操作不进行级联操作
+					
+		如果同时配置了单向的一对多，多对一，那么我们就完成了双向一对多或者叫双向多对一。那么我们既可以方便的由学生查找到对应的班级的信息，
+		也可以方便的由班级查找到其所包含学生的信息
+			
+---4.多对多映射
+		1,基本的hibernate配置，拷贝hibernate的jar包，lib-required文件夹下的必须得jar文件。拷贝cfg文件和hbm文件，方便后期修改。
+		2，创建持久化类，多对多的关联关系，那么分别需要在两个实体类中都添加对方的set集合属性。创建持久化对象映射文件。通过set标签，来配置
+		多对多的关联关系。多对多的关联关系需要用第三张关联关系表来体现。并且关联关系表中的字段都是外键去关联每张表里面的主键。参考sql脚本。
+			<set name="projects" table="proemp" inverse="true"><!-- 关联关系的维护由project方来维护 -->
+				<key column="rempid"></key><!-- 关联的外键，当前的这个映射文件对应的关联关系表中对应的外键id -->
+				<many-to-many class="com.jinan.www.entity.Project" column="rproid"></many-to-many><!-- 集合属性中的持久化类，持久化类所对应的关联外键 -->
+			</set>	
+			把映射文件的物理路径加入到cfg文件中。
+			<mapping resource="com/jinan/www/entity/employee.hbm.xml"/>
+		3，编写测试类。
+			cfg文件，
+			HibernateUtil.java，
+			Employee.java,
+			Project.java,
+			employee.hbm.xml,
+			project.hbm.xml,
+			Test.java		
+---5.注解
+---6.缓存策略
+	1，hibernate一级缓存又称为Session缓存，会话级缓存，通过Session从数据库查询实体时会把实体在内存中存储起来，下一次查询同一实体时不再从数据库获取，而从内存中获取，这就是缓存。
+	一级缓存和session的生命周期是一样的，session销毁，一级缓存就销毁了。一级缓存的数据可适用范围在当前会话之内。
+		一级缓存无法取消，用两个方法管理
+		evict() :用于将某个对象从Session的一级缓存中清除，清除缓存中指定的对象。
+		clear():用于将一级缓存中的所有对象全部清除。
+		
+		Query query = session.createQuery("from Employee");
+		List<Employee> list = query.list();
+		for(Employee employee:list){
+			syso(employee.getName());
+		}
+		
+		Iterator it = query.iterate();
+		while(it.hasNext()){
+			syso(it.next().getName());
+			}
+		当使用query对象查询所有的数据时，query对象的list方法和iterator()方法虽然发出的sql语句不一样，但是list没有使用一级缓存，而iterater会使用到。
+		
+	2,有些常用的数据,在一个session中缓存后,我们希望在其他session中能够直接使用,而不用再次缓存怎么办.
+		使用更高级别的二级缓存,每个session共用的缓存。
+		
+		二级缓存的配置步骤：
+			添加二级缓存对应的jar包
+			在hibernate配置文件中添加Provier的描述信息
+	 		添加二级缓存的属性配置文件
+			在需要被缓存的表所对应的映射文件中添加<cache/>标签。
+				<cache/>标签的详细介绍：
+					usage：指定缓存策略，可选的策略包括：transactional,read-write,nonstrict-read-write,read-only.
+					include:all ,non-lazy
+		
+	3，总结：1，hibernate的缓存能提高检索效率
+			2，hibernate的缓存分为一级缓存和二级缓存，一级缓存是会话级缓存，二级缓存是应用级缓存。
+			3，hibernate的混存在提高检索的同时，也会增加服务器的消耗，所以要注意缓存的使用策略.	
+		
+---7.数据库连接池
+---8.逆向工程，正向工程
+---9.延迟加载。
+---10.主键的生成策略
+                generator标签用来设定主键生成策略，hibernate内置的几种主键生成策略
+                1.increment 适用于代理主键。由Hibernate自动以递增的方式生成主键，每次增量为1 ，会执行两个sql语句，先从表中查找出最大的id，然后加一，插入当前数据
+                2.identity  适用于代理主键。由底层数据库生成主键，依赖数据库的主键自增功能
+                3.sequence  适用于代理主键。由底层数据库的序列来生成主键，前提是数据库支持序列。（mysql不支持，oracle支持）
+                4.hilo      适用于代理主键。Hibernate根据hilo算法来自己生成主键。
+                5.native    适用于代理主键。根据底层数据库对自动生成主键的支持能力选择 identity|sequence|hilo
+                6.uuid      适用于代理主键。采用UUID算法生成主键。
+                7.assigned  适用于自然主键。由我们自己指定主键值。例如指定身份证号为主键值
+---11.hql语句。
+
+	 第一种方式  	HQL语言是面向对象的
+            Query query=session.createQuery("from User");
+
+
+
+			Query对象：   封装HQL语句的对象。
+			
+			        返回一个对象的方法 query.uniqueResult();
+			
+			        分页相关
+			        query.setFirstResult(index):从第几个取
+			        query.setMaxResults(count):指定取几行记录
+            第二种方式
+            Criteria c=session.createCriteria(User.class);
+            List<User> l=c.list();
+
+            第三种方式，使用原生sql语句进行查询
+            SQLQuery query=session.createSQLQuery("select * from user");
+            List l=query.list();
+            
+---12.hibernate处理事务并发问题
+			在Hibernate中设置事务的隔离级别。
+			<property name="hibernate.connection.isolation">2</property>
+			
+			隔离级别代号。
+			1：Read Uncommitted
+			2: Read Committed
+			4: Repeatable Read 
+			8: Serializable
+			
+---13.锁的基本原理
+
+		  为了避免各种并发问题，以保证数据的完整性和一致性，数据库系统采用锁来实现事务的隔离性。 
+	
+	    锁的类型
+	    -共享锁：用于读数据操作。允许其他事务同时读取资源，但不允许其它事务更新。
+	    -独占锁：用于修改数据的场合。它锁定的资源，其他事务不能读取也不能修改。 
+	
+	    锁的基本原理如下
+	        -当一个事务访问某种数据库资源时，如果执行select语句，必须先获得共享锁。
+	        如果执行update、insert、delete语句，必须先获得独占锁。
+	
+	        -当第二个事务也要访问相同的资源时，如果执行select语句，也必须获得共享锁。
+	        如果执行update、insert、delete语句，也必须先获得独占锁。
+	        此时根据锁的类型。来决定第二个事务是应该等待第一个事务完成，还是可以立即获得锁。
+	
+	    许多数据库系统都有自动管理锁的功能，能够根据事务执行的sql语句，自动为资源加上适当的锁。
